@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google Sheets Data as Cards</title>
+    <title>Google Sheets Data</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
@@ -13,34 +13,15 @@
     <div class="container mt-5">
         <h1 class="text-center mb-4">Data dari Google Sheet</h1>
 
-        <!-- Filter Dropdown and Search -->
-        <div class="d-flex justify-content-between mb-4">
-            <div>
-                <label for="monthFilter" class="form-label">Filter berdasarkan bulan:</label>
-                <select id="monthFilter" class="form-select">
-                    <option value="">Semua Bulan</option>
-                    <option value="Jan">Januari</option>
-                    <option value="Feb">Februari</option>
-                    <option value="Mar">Maret</option>
-                    <option value="Apr">April</option>
-                    <option value="May">Mei</option>
-                    <option value="Jun">Juni</option>
-                    <option value="Jul">Juli</option>
-                    <option value="Aug">Agustus</option>
-                    <option value="Sep">September</option>
-                    <option value="Oct">Oktober</option>
-                    <option value="Nov">November</option>
-                    <option value="Dec">Desember</option>
-                </select>
-            </div>
-            <div>
-                <label for="searchInput" class="form-label">Cari berdasarkan kata kunci:</label>
-                <input type="text" id="searchInput" class="form-control" placeholder="Masukkan kata kunci...">
-            </div>
+        <!-- Filter Input -->
+        <div class="mb-3">
+            <input type="text" id="filterInput" class="form-control" placeholder="Cari data...">
         </div>
 
         <!-- Cards Container -->
-        <div class="row" id="cards-container"></div>
+        <div class="row" id="data-cards">
+            <!-- Data cards will be dynamically populated here -->
+        </div>
     </div>
 
     <!-- Bootstrap JS -->
@@ -54,30 +35,31 @@
             .then(response => response.text())
             .then(data => {
                 const rows = data.split('\n');
-                const headers = rows[0].split(',');
-                const cardsContainer = document.getElementById('cards-container');
+                const dataCards = document.getElementById('data-cards');
 
-                // Parse data into cards
+                // Extract headers from the first row
+                const headers = rows[0].split(',');
+
+                // Create cards for subsequent rows
                 for (let i = 1; i < rows.length; i++) {
                     if (rows[i]) {
-                        const cells = rows[i].split(',');
+                        const rowData = rows[i].split(',');
+
+                        // Create a card element
                         const card = document.createElement('div');
                         card.className = 'col-md-4 mb-4';
 
                         card.innerHTML = `
                             <div class="card h-100">
                                 <div class="card-body">
-                                    <h5 class="card-title">${cells[headers.indexOf('Nama Acara')] || 'Tidak Ada Nama'}</h5>
-                                    <p class="card-text"><strong>Tanggal:</strong> ${cells[headers.indexOf('Tanggal')] || '-'}</p>
-                                    <p class="card-text"><strong>Lokasi:</strong> ${cells[headers.indexOf('Lokasi')] || '-'}</p>
-                                    <p class="card-text"><strong>Area:</strong> ${cells[headers.indexOf('Area')] || '-'}</p>
-                                    <p class="card-text"><strong>Last Update:</strong> ${cells[headers.indexOf('Last Update')] || '-'}</p>
-                                    <a href="${cells[headers.indexOf('Link Acara bit.ly/JFestAdd')] || '#'}" class="btn btn-primary" target="_blank">Lihat Detail</a>
+                                    ${rowData.map((cell, index) => `
+                                        <p><strong>${headers[index]}:</strong> ${cell}</p>
+                                    `).join('')}
                                 </div>
                             </div>
                         `;
-                        card.dataset.month = cells[headers.indexOf('Tanggal')].slice(3, 6); // Extract month abbreviation
-                        cardsContainer.appendChild(card);
+
+                        dataCards.appendChild(card);
                     }
                 }
             })
@@ -85,29 +67,21 @@
                 console.error('Error:', error);
             });
 
-        // Filter and Search Functionality
-        document.getElementById('monthFilter').addEventListener('change', filterAndSearch);
-        document.getElementById('searchInput').addEventListener('keyup', filterAndSearch);
-
-        function filterAndSearch() {
-            const monthValue = document.getElementById('monthFilter').value;
-            const keyword = document.getElementById('searchInput').value.toLowerCase();
-            const cards = document.querySelectorAll('#cards-container .col-md-4');
+        // Filter Cards Functionality
+        document.getElementById('filterInput').addEventListener('keyup', function () {
+            const filterValue = this.value.toLowerCase();
+            const cards = document.querySelectorAll('#data-cards .card');
 
             cards.forEach(card => {
                 const textContent = card.textContent.toLowerCase();
-                const cardMonth = card.dataset.month;
 
-                const matchesMonth = monthValue === '' || cardMonth === monthValue;
-                const matchesKeyword = textContent.includes(keyword);
-
-                if (matchesMonth && matchesKeyword) {
-                    card.style.display = '';
+                if (textContent.includes(filterValue)) {
+                    card.parentElement.style.display = '';
                 } else {
-                    card.style.display = 'none';
+                    card.parentElement.style.display = 'none';
                 }
             });
-        }
+        });
     </script>
 </body>
 
