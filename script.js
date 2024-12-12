@@ -2,16 +2,12 @@ const SPREADSHEET_URL =
     'https://docs.google.com/spreadsheets/d/1RQ2PZMRKjBVHpG0ettmuiDjjxzpF7OfFDfXlJDT0ElE/gviz/tq';
 
 let allEvents = []; // Store all events globally
-let uniqueAreas = new Set(); // Store unique areas
-let uniqueMonths = new Set(); // Store unique months
 
-// Customizable card creation function
 function createEventCard(event) {
     const cardContainer = document.getElementById('card-container');
     const card = document.createElement('div');
     card.className = 'col-md-4 mb-4';
 
-    // Custom card template - you can easily modify this
     card.innerHTML = `
         <div class="card h-100 shadow-sm">
             <div class="card-body">
@@ -71,12 +67,10 @@ function processSheetData(response) {
     areaFilter.innerHTML = '<option value="">Semua Area</option>'; // Reset area filter
     monthFilter.innerHTML = '<option value="">Semua Bulan</option>'; // Reset month filter
 
-    uniqueAreas.clear(); // Clear previous unique areas
-    uniqueMonths.clear(); // Clear previous unique months
-
-    // Tracking event counts for months and areas
-    const monthCounts = new Map();
-    const areaCounts = new Map();
+    // Tracking event counts
+    const allMonthCounts = new Map();
+    const allAreaCounts = new Map();
+    const monthAreaCounts = new Map();
 
     // Parse rows
     const rows = response.table.rows;
@@ -92,19 +86,20 @@ function processSheetData(response) {
         const lastUpdate = row.c[5] ? row.c[5].f : '-';
         const linkAcara = row.c[6] ? row.c[6].v : '#';
 
-        // Add area to unique areas
+        // Extract month
+        const month = extractMonthFromDate(tanggal);
+
+        // Count total events per area and month
         if (area !== '-') {
-            uniqueAreas.add(area);
-            // Count events per area
-            areaCounts.set(area, (areaCounts.get(area) || 0) + 1);
+            allAreaCounts.set(area, (allAreaCounts.get(area) || 0) + 1);
         }
 
-        // Extract and add month to unique months
-        const month = extractMonthFromDate(tanggal);
         if (month) {
-            uniqueMonths.add(month);
-            // Count events per month
-            monthCounts.set(month, (monthCounts.get(month) || 0) + 1);
+            allMonthCounts.set(month, (allMonthCounts.get(month) || 0) + 1);
+
+            // Count events per month-area combination
+            const key = `${month}-${area}`;
+            monthAreaCounts.set(key, (monthAreaCounts.get(key) || 0) + 1);
         }
 
         // Store event data
@@ -115,7 +110,8 @@ function processSheetData(response) {
             area,
             namaAcara,
             lastUpdate,
-            linkAcara
+            linkAcara,
+            month
         });
 
         // Create Card
@@ -130,38 +126,68 @@ function processSheetData(response) {
         });
     });
 
-    // Populate area filter dropdown (sorted)
-    Array.from(uniqueAreas)
-        .sort((a, b) => a.localeCompare(b))
-        .forEach(area => {
-            const option = document.createElement('option');
-            option.value = area;
-            const eventCount = areaCounts.get(area) || 0;
-            option.textContent = `${area} (${eventCount} event)`;
-            areaFilter.appendChild(option);
-        });
-
     // Populate month filter dropdown
-    Array.from(uniqueMonths)
-        .sort((a, b) => {
-            // Assuming months are in Indonesian format
-            const monthOrder = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-            ];
-            return monthOrder.indexOf(a) - monthOrder.indexOf(b);
-        })
-        .forEach(month => {
+    const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+        'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+    ];
+    monthOrder.forEach(month => {
+        const eventCount = allMonthCounts.get(month) || 0;
+        if (eventCount > 0) {
             const option = document.createElement('option');
             option.value = month;
-            const eventCount = monthCounts.get(month) || 0;
             option.textContent = `${month} (${eventCount} event)`;
             monthFilter.appendChild(option);
+        }
+    });
+
+    // Initial dropdown setup
+    updateAreaFilterOptions();
+
+    // Add event listeners for filters
+    monthFilter.addEventListener('change', () => {
+        updateAreaFilterOptions();
+        filterEvents();
+    });
+
+    areaFilter.addEventListener('change', filterEvents);
+    document.getElementById('searchInput').addEventListener('input', filterEvents);
+
+    function updateAreaFilterOptions() {
+        const selectedMonth = monthFilter.value;
+        areaFilter.innerHTML = '<option value="">Semua Area</option>';
+
+        // If no month selected, show all areas with total counts
+        if (!selectedMonth) {
+            Array.from(allAreaCounts.entries())
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .forEach(([area, count]) => {
+                    const option = document.createElement('option');
+                    option.value = area;
+                    option.textContent = `${area} (${count} event)`;
+                    areaFilter.appendChild(option);
+                });
+            return;
+        }
+
+        // Filter areas based on selected month
+        const areasInMonth = new Map();
+        allEvents.forEach(event => {
+            if (event.month === selectedMonth) {
+                const count = areasInMonth.get(event.area) || 0;
+                areasInMonth.set(event.area, count + 1);
+            }
         });
 
-    // Add event listeners for search, month, and area filters
-    document.getElementById('searchInput').addEventListener('input', filterEvents);
-    document.getElementById('monthFilter').addEventListener('change', filterEvents);
-    document.getElementById('areaFilter').addEventListener('change', filterEvents);
+        // Populate area dropdown for selected month
+        Array.from(areasInMonth.entries())
+            .sort((a, b) => a[0].localeCompare(b[0]))
+            .forEach(([area, count]) => {
+                const option = document.createElement('option');
+                option.value = area;
+                option.textContent = `${area} (${count} event)`;
+                areaFilter.appendChild(option);
+            });
+    }
 }
 
 function filterEvents() {
@@ -181,7 +207,7 @@ function filterEvents() {
 
         const matchesMonth =
             monthFilter === '' ||
-            (event.tanggal && event.tanggal.includes(monthFilter));
+            event.month === monthFilter;
 
         const matchesArea =
             areaFilter === '' ||
