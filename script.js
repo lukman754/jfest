@@ -10,7 +10,7 @@ function createEventCard(event) {
     const cardContainer = document.getElementById('card-container');
     const card = document.createElement('div');
     card.className = 'col-md-4 mb-4';
-    
+
     // Custom card template - you can easily modify this
     card.innerHTML = `
         <div class="card h-100 shadow-sm">
@@ -35,7 +35,7 @@ function createEventCard(event) {
             </div>
         </div>
     `;
-    
+
     cardContainer.appendChild(card);
 }
 
@@ -57,7 +57,7 @@ function fetchGoogleSheetData() {
 
 function extractMonthFromDate(dateString) {
     if (!dateString || dateString === '-') return null;
-    
+
     const parts = dateString.split(' ');
     return parts.length > 1 ? parts[1] : null;
 }
@@ -66,13 +66,17 @@ function processSheetData(response) {
     const cardContainer = document.getElementById('card-container');
     const areaFilter = document.getElementById('areaFilter');
     const monthFilter = document.getElementById('monthFilter');
-    
+
     cardContainer.innerHTML = ''; // Clear previous content
     areaFilter.innerHTML = '<option value="">Semua Area</option>'; // Reset area filter
     monthFilter.innerHTML = '<option value="">Semua Bulan</option>'; // Reset month filter
-    
+
     uniqueAreas.clear(); // Clear previous unique areas
     uniqueMonths.clear(); // Clear previous unique months
+
+    // Tracking event counts for months and areas
+    const monthCounts = new Map();
+    const areaCounts = new Map();
 
     // Parse rows
     const rows = response.table.rows;
@@ -91,12 +95,16 @@ function processSheetData(response) {
         // Add area to unique areas
         if (area !== '-') {
             uniqueAreas.add(area);
+            // Count events per area
+            areaCounts.set(area, (areaCounts.get(area) || 0) + 1);
         }
 
         // Extract and add month to unique months
         const month = extractMonthFromDate(tanggal);
         if (month) {
             uniqueMonths.add(month);
+            // Count events per month
+            monthCounts.set(month, (monthCounts.get(month) || 0) + 1);
         }
 
         // Store event data
@@ -128,17 +136,27 @@ function processSheetData(response) {
         .forEach(area => {
             const option = document.createElement('option');
             option.value = area;
-            option.textContent = area;
+            const eventCount = areaCounts.get(area) || 0;
+            option.textContent = `${area} (${eventCount} event)`;
             areaFilter.appendChild(option);
         });
 
     // Populate month filter dropdown
-    uniqueMonths.forEach(month => {
-        const option = document.createElement('option');
-        option.value = month;
-        option.textContent = month;
-        monthFilter.appendChild(option);
-    });
+    Array.from(uniqueMonths)
+        .sort((a, b) => {
+            // Assuming months are in Indonesian format
+            const monthOrder = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+            ];
+            return monthOrder.indexOf(a) - monthOrder.indexOf(b);
+        })
+        .forEach(month => {
+            const option = document.createElement('option');
+            option.value = month;
+            const eventCount = monthCounts.get(month) || 0;
+            option.textContent = `${month} (${eventCount} event)`;
+            monthFilter.appendChild(option);
+        });
 
     // Add event listeners for search, month, and area filters
     document.getElementById('searchInput').addEventListener('input', filterEvents);
@@ -156,17 +174,17 @@ function filterEvents() {
 
     // Filter events based on search, month, and area
     const filteredEvents = allEvents.filter(event => {
-        const matchesSearch = 
+        const matchesSearch =
             event.namaAcara.toLowerCase().includes(searchInput) ||
             event.lokasi.toLowerCase().includes(searchInput) ||
             event.area.toLowerCase().includes(searchInput);
-        
-        const matchesMonth = 
-            monthFilter === '' || 
+
+        const matchesMonth =
+            monthFilter === '' ||
             (event.tanggal && event.tanggal.includes(monthFilter));
 
-        const matchesArea = 
-            areaFilter === '' || 
+        const matchesArea =
+            areaFilter === '' ||
             event.area === areaFilter;
 
         return matchesSearch && matchesMonth && matchesArea;
