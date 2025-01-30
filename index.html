@@ -1,49 +1,213 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Event</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Jadwal Event</title>
+    <!-- icon -->
+    <link
+      rel="icon"
+      href="https://scontent.fcgk10-2.fna.fbcdn.net/v/t39.30808-6/218325740_10220123099896465_7208779183307324569_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=2285d6&_nc_eui2=AeH5hrk_yjRMqIpkdUTppmlNoAPYeRku-sagA9h5GS76xqikn0Ya5rQn--BTYlvVkEhUF3sAoj7hvUC3eCcxQqUE&_nc_ohc=K4OCel5qsRgQ7kNvgEQufgN&_nc_oc=AdiZTZvKjde46WO7SRrRuGpEPygbF3maGNUxp-qbLWjUs3BTsYDXU5AB90MQUEEkHpc&_nc_zt=23&_nc_ht=scontent.fcgk10-2.fna&_nc_gid=AfJMp5AWFCqWqN7bCXou7Db&oh=00_AYAcyBo7_EE2Ijqq9fdgDSd8vNeyDULikNZsbPF2Q_QYFA&oe=67A10D29"
+      type="image/jpeg"
+      sizes="120x120"
+    />
+    <script
+      src="https://kit.fontawesome.com/f59e2d85df.js"
+      crossorigin="anonymous"
+    ></script>
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
     <style>
-        .card-link {
-            word-break: break-all;
-            white-space: normal;
-        }
+      .event-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+      .event-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+      }
+      .card-link {
+        word-break: break-word;
+      }
+
+      .bg-success {
+        background-color: #eb9b9a !important;
+      }
+
+      .bg-primary {
+        background-color: #8f6b99 !important;
+      }
+
+      .btn-primary {
+        background-color: #8f6b99 !important;
+        border-color: #8f6b99 !important;
+      }
+
+      .text-primary {
+        color: #8f6b99 !important;
+      }
+
+      .text-primary {
+        color: #8f6b99 !important;
+      }
+
+      * {
+        border-color: #ebebeb !important;
+      }
     </style>
-</head>
+  </head>
 
-<body>
-    <div class="container mt-5">
-        <h1 class="text-center mb-4">Event dari Google Sheet</h1>
+  <body class="bg-light">
+    <div class="container py-4">
+      <div style="position: relative">
+        <img
+          src="https://scontent.fcgk10-2.fna.fbcdn.net/v/t39.30808-6/218325740_10220123099896465_7208779183307324569_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=2285d6&_nc_eui2=AeH5hrk_yjRMqIpkdUTppmlNoAPYeRku-sagA9h5GS76xqikn0Ya5rQn--BTYlvVkEhUF3sAoj7hvUC3eCcxQqUE&_nc_ohc=K4OCel5qsRgQ7kNvgEQufgN&_nc_oc=AdiZTZvKjde46WO7SRrRuGpEPygbF3maGNUxp-qbLWjUs3BTsYDXU5AB90MQUEEkHpc&_nc_zt=23&_nc_ht=scontent.fcgk10-2.fna&_nc_gid=AfJMp5AWFCqWqN7bCXou7Db&oh=00_AYAcyBo7_EE2Ijqq9fdgDSd8vNeyDULikNZsbPF2Q_QYFA&oe=67A10D29"
+          alt="JFest Indo Lover"
+          class="mb-2 rounded"
+          style="
+            width: 100%;
+            max-height: 400px;
+            object-fit: cover;
+            object-position: top;
+            border-radius: 8px;
+          "
+        />
 
-        <div class="row mb-3">
-            <div class="col-md-4">
-                <input type="text" id="searchInput" class="form-control" placeholder="Cari berdasarkan nama acara, lokasi, atau area">
-            </div>
-            <div class="col-md-4">
-                <select id="monthFilter" class="form-select">
-                    <option value="">Semua Bulan</option>
-                </select>
-            </div>
-            <div class="col-md-4">
-                <select id="areaFilter" class="form-select">
-                    <option value="">Semua Area</option>
-                </select>
-            </div>
+        <a
+          href="https://www.facebook.com/share/g/19LprpJs7A/"
+          target="_blank"
+          style="
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 12px;
+            font-size: 10px;
+            font-weight: bold;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: background 0.3s ease;
+            align-items: center;
+          "
+          onmouseover="this.style.background='rgba(0, 0, 0, 0.9)'"
+          onmouseout="this.style.background='rgba(0, 0, 0, 0.7)'"
+        >
+          <img
+            src="https://img.icons8.com/?size=100&id=13912&format=png&color=000000"
+            width="20"
+            alt=""
+          />
+          JFest Indo Lover
+        </a>
+        <a
+          href="https://docs.google.com/spreadsheets/d/1RQ2PZMRKjBVHpG0ettmuiDjjxzpF7OfFDfXlJDT0ElE/htmlview"
+          target="_blank"
+          style="
+            position: absolute;
+            top: 10px;
+            right: 150px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 12px;
+            font-size: 10px;
+            font-weight: bold;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: background 0.3s ease;
+            align-items: center;
+          "
+          onmouseover="this.style.background='rgba(0, 0, 0, 0.9)'"
+          onmouseout="this.style.background='rgba(0, 0, 0, 0.7)'"
+        >
+          <img
+            src="https://img.icons8.com/?size=100&id=21214&format=png&color=000000"
+            width="20"
+            alt=""
+          />
+          J-FEST CHART
+        </a>
+      </div>
+
+      <!-- Filter Section -->
+      <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">Filter Pencarian</h5>
         </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="input-group">
+                <span class="input-group-text">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    fill="currentColor"
+                    class="bi bi-search"
+                    viewBox="0 0 16 16"
+                  >
+                    <path
+                      d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"
+                    />
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  id="searchInput"
+                  class="form-control"
+                  placeholder="Cari Event..."
+                />
+              </div>
+            </div>
+            <div class="col-md-4">
+              <select id="monthFilter" class="form-select">
+                <option value="">Semua Bulan</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <select id="areaFilter" class="form-select">
+                <option value="">Semua Area</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
 
-        <!-- Card Container -->
-        <div class="row" id="card-container"></div>
+      <!-- Card Container --><!-- Total Events Counter -->
+      <div id="total-events-container" class="mb-3"></div>
+
+      <!-- Event Cards -->
+      <div id="card-container" class="row g-2"></div>
+
+      <!-- Pagination -->
+      <div id="pagination-container" class="mt-4"></div>
+
+      <!-- Footer -->
+      <footer class="text-center mt-4 pb-4 text-muted">
+        Made with
+        <img
+          src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Heart%20on%20Fire.png"
+          alt="Heart on Fire"
+          width="20"
+          height="20"
+        />
+        by
+        <a
+          href="https://github.com/Lukman754"
+          target="_blank"
+          class="text-decoration-none text-primary"
+          >Lukman754</a
+        >
+      </footer>
     </div>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <!-- Custom Script -->
     <script src="script.js"></script>
-</body>
-
+  </body>
 </html>
