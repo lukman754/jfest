@@ -1,375 +1,213 @@
-// Configuration
-const SPREADSHEET_URL =
-  "https://docs.google.com/spreadsheets/d/1RQ2PZMRKjBVHpG0ettmuiDjjxzpF7OfFDfXlJDT0ElE/gviz/tq";
-const ITEMS_PER_PAGE = 9;
-
-// Global state
-let allEvents = [];
-let currentPage = 1;
-
-// Initialize Google Visualization API
-window.google = {
-  visualization: {
-    Query: {
-      setResponse: function (data) {
-        processSheetData(data);
-      },
-    },
-  },
-};
-
-// Fetch data from Google Sheets
-function fetchGoogleSheetData() {
-  const script = document.createElement("script");
-  script.src = SPREADSHEET_URL;
-  document.body.appendChild(script);
-}
-
-// Extract month from date string
-function extractMonthFromDate(dateString) {
-  if (!dateString || dateString === "-") return null;
-  const parts = dateString.split(" ");
-  return parts.length > 1 ? parts[1] : null;
-}
-
-// Process sheet data
-function processSheetData(response) {
-  const cardContainer = document.getElementById("card-container");
-  const areaFilter = document.getElementById("areaFilter");
-  const monthFilter = document.getElementById("monthFilter");
-
-  // Clear existing content
-  cardContainer.innerHTML = "";
-  areaFilter.innerHTML = '<option value="">Semua Area</option>';
-  monthFilter.innerHTML = '<option value="">Semua Bulan</option>';
-
-  // Initialize counters
-  const allMonthCounts = new Map();
-  const allAreaCounts = new Map();
-  const monthAreaCounts = new Map();
-
-  // Reset events array
-  allEvents = [];
-
-  // Process each row
-  response.table.rows.forEach((row) => {
-    const event = {
-      tanggal: row.c[0] ? row.c[0].f : "-",
-      jam: row.c[1] ? row.c[1].f || "-" : "-",
-      lokasi: row.c[2] ? row.c[2].v : "-",
-      area: row.c[3] ? row.c[3].v : "-",
-      namaAcara: row.c[4] ? row.c[4].v : "-",
-      lastUpdate: row.c[5] ? row.c[5].f : "-",
-      linkAcara: row.c[6] ? row.c[6].v : "#",
-    };
-
-    // Extract and add month
-    event.month = extractMonthFromDate(event.tanggal);
-
-    // Update counters
-    if (event.area !== "-") {
-      allAreaCounts.set(event.area, (allAreaCounts.get(event.area) || 0) + 1);
-    }
-
-    if (event.month) {
-      allMonthCounts.set(
-        event.month,
-        (allMonthCounts.get(event.month) || 0) + 1
-      );
-      const key = `${event.month}-${event.area}`;
-      monthAreaCounts.set(key, (monthAreaCounts.get(key) || 0) + 1);
-    }
-
-    // Store event
-    allEvents.push(event);
-  });
-
-  // Populate month filter
-  const monthOrder = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "Mei",
-    "Jun",
-    "Jul",
-    "Agu",
-    "Sep",
-    "Okt",
-    "Nov",
-    "Des",
-  ];
-  monthOrder.forEach((month) => {
-    const count = allMonthCounts.get(month) || 0;
-    if (count > 0) {
-      const option = document.createElement("option");
-      option.value = month;
-      option.textContent = `${month} (${count} event)`;
-      monthFilter.appendChild(option);
-    }
-  });
-
-  // Initialize filters and display
-  updateAreaFilterOptions();
-  filterEvents();
-
-  // Add event listeners
-  monthFilter.addEventListener("change", () => {
-    currentPage = 1;
-    updateAreaFilterOptions();
-    filterEvents();
-  });
-
-  areaFilter.addEventListener("change", () => {
-    currentPage = 1;
-    filterEvents();
-  });
-
-  document.getElementById("searchInput").addEventListener("input", () => {
-    currentPage = 1;
-    filterEvents();
-  });
-}
-
-// Update area filter options based on selected month
-function updateAreaFilterOptions() {
-  const monthFilter = document.getElementById("monthFilter");
-  const areaFilter = document.getElementById("areaFilter");
-  const selectedMonth = monthFilter.value;
-
-  areaFilter.innerHTML = '<option value="">Semua Area</option>';
-
-  const areas = new Map();
-
-  if (selectedMonth) {
-    // Filter areas for selected month
-    allEvents.forEach((event) => {
-      if (event.month === selectedMonth) {
-        areas.set(event.area, (areas.get(event.area) || 0) + 1);
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Jadwal Event</title>
+    <!-- icon -->
+    <link
+      rel="icon"
+      href="https://scontent.fcgk10-2.fna.fbcdn.net/v/t39.30808-6/218325740_10220123099896465_7208779183307324569_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=2285d6&_nc_eui2=AeH5hrk_yjRMqIpkdUTppmlNoAPYeRku-sagA9h5GS76xqikn0Ya5rQn--BTYlvVkEhUF3sAoj7hvUC3eCcxQqUE&_nc_ohc=K4OCel5qsRgQ7kNvgEQufgN&_nc_oc=AdiZTZvKjde46WO7SRrRuGpEPygbF3maGNUxp-qbLWjUs3BTsYDXU5AB90MQUEEkHpc&_nc_zt=23&_nc_ht=scontent.fcgk10-2.fna&_nc_gid=AfJMp5AWFCqWqN7bCXou7Db&oh=00_AYAcyBo7_EE2Ijqq9fdgDSd8vNeyDULikNZsbPF2Q_QYFA&oe=67A10D29"
+      type="image/jpeg"
+      sizes="120x120"
+    />
+    <script
+      src="https://kit.fontawesome.com/f59e2d85df.js"
+      crossorigin="anonymous"
+    ></script>
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      .event-card {
+        transition: transform 0.2s, box-shadow 0.2s;
       }
-    });
-  } else {
-    // Show all areas
-    allEvents.forEach((event) => {
-      areas.set(event.area, (areas.get(event.area) || 0) + 1);
-    });
-  }
-
-  // Add area options
-  Array.from(areas.entries())
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .forEach(([area, count]) => {
-      if (area !== "-") {
-        const option = document.createElement("option");
-        option.value = area;
-        option.textContent = `${area} (${count} event)`;
-        areaFilter.appendChild(option);
+      .event-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
       }
-    });
-}
+      .card-link {
+        word-break: break-word;
+      }
 
-// Create event card
-function createEventCard(event) {
-  const card = document.createElement("div");
-  card.className = "col-md-6 col-lg-4";
+      .bg-success {
+        background-color: #eb9b9a !important;
+      }
 
-  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    event.lokasi
-  )}`;
+      .bg-primary {
+        background-color: #8f6b99 !important;
+      }
 
-  card.innerHTML = `
-        <div class="card event-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <h5 class="card-title mb-0">${event.namaAcara}</h5>
-                    <span class="badge bg-success">${event.area}</span>
-                </div>
-                <p class="card-text text-muted small mb-1">
-                    <i class="fas fa-calendar me-1"></i>
-                    ${event.tanggal}
-                </p>
-                <p class="card-text text-muted small mb-3">
-                    <i class="fas fa-map-marker-alt me-1"></i>
-                    ${event.lokasi}
-                </p>
-                <div class="d-flex gap-2 mb-2">
-                    <a href="${event.linkAcara}" class="btn btn-primary btn-sm" target="_blank">
-                        <i class="fas fa-calendar-check me-1"></i>
-                        Lihat Acara
-                    </a>
-                    <button onclick="window.open('${mapsUrl}', '_blank')" class="btn btn-outline-secondary btn-sm">
-                        <img src="https://img.icons8.com/?size=100&id=DcygmpZqBEd9&format=png&color=000000" width="20">
-                        Lihat Lokasi
-                    </button>
-                </div>
-            </div>
+      .btn-primary {
+        background-color: #8f6b99 !important;
+        border-color: #8f6b99 !important;
+      }
+
+      .text-primary {
+        color: #8f6b99 !important;
+      }
+
+      .text-primary {
+        color: #8f6b99 !important;
+      }
+
+      * {
+        border-color: #ebebeb !important;
+      }
+    </style>
+  </head>
+
+  <body class="bg-light">
+    <div class="container py-4">
+      <div style="position: relative">
+        <img
+          src="https://scontent.fcgk10-2.fna.fbcdn.net/v/t39.30808-6/218325740_10220123099896465_7208779183307324569_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=2285d6&_nc_eui2=AeH5hrk_yjRMqIpkdUTppmlNoAPYeRku-sagA9h5GS76xqikn0Ya5rQn--BTYlvVkEhUF3sAoj7hvUC3eCcxQqUE&_nc_ohc=K4OCel5qsRgQ7kNvgEQufgN&_nc_oc=AdiZTZvKjde46WO7SRrRuGpEPygbF3maGNUxp-qbLWjUs3BTsYDXU5AB90MQUEEkHpc&_nc_zt=23&_nc_ht=scontent.fcgk10-2.fna&_nc_gid=AfJMp5AWFCqWqN7bCXou7Db&oh=00_AYAcyBo7_EE2Ijqq9fdgDSd8vNeyDULikNZsbPF2Q_QYFA&oe=67A10D29"
+          alt="JFest Indo Lover"
+          class="mb-2 rounded"
+          style="
+            width: 100%;
+            max-height: 400px;
+            object-fit: cover;
+            object-position: top;
+            border-radius: 8px;
+          "
+        />
+
+        <a
+          href="https://www.facebook.com/share/g/19LprpJs7A/"
+          target="_blank"
+          style="
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 12px;
+            font-size: 10px;
+            font-weight: bold;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: background 0.3s ease;
+            align-items: center;
+          "
+          onmouseover="this.style.background='rgba(0, 0, 0, 0.9)'"
+          onmouseout="this.style.background='rgba(0, 0, 0, 0.7)'"
+        >
+          <img
+            src="https://img.icons8.com/?size=100&id=13912&format=png&color=000000"
+            width="20"
+            alt=""
+          />
+          JFest Indo Lover
+        </a>
+        <a
+          href="https://docs.google.com/spreadsheets/d/1RQ2PZMRKjBVHpG0ettmuiDjjxzpF7OfFDfXlJDT0ElE/htmlview"
+          target="_blank"
+          style="
+            position: absolute;
+            top: 10px;
+            right: 150px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 12px;
+            font-size: 10px;
+            font-weight: bold;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: background 0.3s ease;
+            align-items: center;
+          "
+          onmouseover="this.style.background='rgba(0, 0, 0, 0.9)'"
+          onmouseout="this.style.background='rgba(0, 0, 0, 0.7)'"
+        >
+          <img
+            src="https://img.icons8.com/?size=100&id=21214&format=png&color=000000"
+            width="20"
+            alt=""
+          />
+          J-FEST CHART
+        </a>
+      </div>
+
+      <!-- Filter Section -->
+      <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">Filter Pencarian</h5>
         </div>
-    `;
-
-  return card;
-}
-
-// Create pagination UI
-
-// Update the HTML structure first
-function updateTotalEvents(totalItems) {
-  const totalEventsContainer = document.getElementById(
-    "total-events-container"
-  );
-  totalEventsContainer.innerHTML = `
-        <div class="d-flex px-2 justify-content-between align-items-center mb-3">
-            <small class="text-muted mb-0">
-                Total Events: <strong>${totalItems}</strong>
-            </small>
-            <small class="text-muted">Showing page ${currentPage} of ${Math.ceil(
-    totalItems / ITEMS_PER_PAGE
-  )}</small>
-        </div>
-    `;
-}
-
-function createPagination(totalItems) {
-  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
-  const paginationContainer = document.getElementById("pagination-container");
-  paginationContainer.innerHTML = "";
-
-  if (totalPages <= 1) return;
-
-  const pagination = document.createElement("nav");
-  pagination.setAttribute("aria-label", "Event pagination");
-
-  let paginationHTML = `
-        <ul class="pagination justify-content-center">
-            <li class="page-item ${currentPage === 1 ? "disabled" : ""}">
-                <a class="page-link text-primary" href="#" data-page="1" title="First page">
-                    <i class="fas fa-angle-double-left"></i>
-                </a>
-            </li>
-            <li class="page-item ${currentPage === 1 ? "disabled" : ""}">
-                <a class="page-link text-primary" href="#" data-page="${
-                  currentPage - 1
-                }" title="Previous page">
-                    <i class="fas fa-angle-left"></i>
-                </a>
-            </li>
-    `;
-
-  // Generate page numbers
-  const maxVisiblePages = 5;
-  let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-  let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-  if (endPage - startPage + 1 < maxVisiblePages) {
-    startPage = Math.max(1, endPage - maxVisiblePages + 1);
-  }
-
-  for (let i = startPage; i <= endPage; i++) {
-    paginationHTML += `
-        <li class="page-item ${currentPage === i ? "active" : ""}">
-            <a class="page-link ${
-              currentPage === i ? "text-white bg-primary" : "text-primary"
-            }" href="#" data-page="${i}">${i}</a>
-        </li>
-    `;
-  }
-
-  paginationHTML += `
-            <li class="page-item ${
-              currentPage === totalPages ? "disabled" : ""
-            }">
-                <a class="page-link text-primary" href="#" data-page="${
-                  currentPage + 1
-                }" title="Next page">
-                    <i class="fas fa-angle-right"></i>
-                </a>
-            </li>
-            <li class="page-item ${
-              currentPage === totalPages ? "disabled" : ""
-            }">
-                <a class="page-link text-primary" href="#" data-page="${totalPages}" title="Last page">
-                    <i class="fas fa-angle-double-right"></i>
-                </a>
-            </li>
-        </ul>
-    `;
-
-  pagination.innerHTML = paginationHTML;
-  paginationContainer.appendChild(pagination);
-
-  // Add click handlers
-  pagination.querySelectorAll(".page-link").forEach((link) => {
-    link.addEventListener("click", (e) => {
-      e.preventDefault();
-      const newPage = parseInt(e.target.closest(".page-link").dataset.page);
-      if (
-        !isNaN(newPage) &&
-        newPage !== currentPage &&
-        newPage > 0 &&
-        newPage <= totalPages
-      ) {
-        currentPage = newPage;
-        filterEvents();
-        // Scroll to top of container
-        document
-          .getElementById("total-events-container")
-          .scrollIntoView({ behavior: "smooth" });
-      }
-    });
-  });
-}
-
-// Update the filterEvents function
-function filterEvents() {
-  const searchInput = document
-    .getElementById("searchInput")
-    .value.toLowerCase();
-  const monthFilter = document.getElementById("monthFilter").value;
-  const areaFilter = document.getElementById("areaFilter").value;
-  const cardContainer = document.getElementById("card-container");
-
-  // Clear container
-  cardContainer.innerHTML = "";
-
-  // Filter events
-  const filteredEvents = allEvents.filter((event) => {
-    const matchesSearch =
-      event.namaAcara.toLowerCase().includes(searchInput) ||
-      event.lokasi.toLowerCase().includes(searchInput) ||
-      event.area.toLowerCase().includes(searchInput);
-
-    const matchesMonth = monthFilter === "" || event.month === monthFilter;
-    const matchesArea = areaFilter === "" || event.area === areaFilter;
-
-    return matchesSearch && matchesMonth && matchesArea;
-  });
-
-  // Show no results message if needed
-  if (filteredEvents.length === 0) {
-    cardContainer.innerHTML = `
-            <div class="col-12">
-                <div class="alert alert-info text-center" role="alert">
-                    Tidak ada event yang ditemukan
-                </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="input-group">
+                <span class="input-group-text">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    fill="currentColor"
+                    class="bi bi-search"
+                    viewBox="0 0 16 16"
+                  >
+                    <path
+                      d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"
+                    />
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  id="searchInput"
+                  class="form-control"
+                  placeholder="Cari Event..."
+                />
+              </div>
             </div>
-        `;
-    updateTotalEvents(0);
-    createPagination(0);
-    return;
-  }
+            <div class="col-md-4">
+              <select id="monthFilter" class="form-select">
+                <option value="">Semua Bulan</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <select id="areaFilter" class="form-select">
+                <option value="">Semua Area</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
 
-  // Paginate results
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, filteredEvents.length);
-  const eventsToShow = filteredEvents.slice(startIndex, endIndex);
+      <!-- Card Container --><!-- Total Events Counter -->
+      <div id="total-events-container" class="mb-3"></div>
 
-  // Create and append cards
-  eventsToShow.forEach((event) => {
-    cardContainer.appendChild(createEventCard(event));
-  });
+      <!-- Event Cards -->
+      <div id="card-container" class="row g-2"></div>
 
-  // Update total events and pagination
-  updateTotalEvents(filteredEvents.length);
-  createPagination(filteredEvents.length);
-}
-// Initialize
-fetchGoogleSheetData();
+      <!-- Pagination -->
+      <div id="pagination-container" class="mt-4"></div>
+
+      <!-- Footer -->
+      <footer class="text-center mt-4 pb-4 text-muted">
+        Made with
+        <img
+          src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Heart%20on%20Fire.png"
+          alt="Heart on Fire"
+          width="20"
+          height="20"
+        />
+        by
+        <a
+          href="https://github.com/Lukman754"
+          target="_blank"
+          class="text-decoration-none text-primary"
+          >Lukman754</a
+        >
+      </footer>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Custom Script -->
+    <script src="script.js"></script>
+  </body>
+</html>
